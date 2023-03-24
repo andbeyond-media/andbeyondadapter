@@ -1,4 +1,4 @@
-package com.rtb.andbeyondmedia.adapter
+package com.rtb.andbeyondmedia.adapter.sdk
 
 /**
  * Error codes for reasons why an ad request may fail.

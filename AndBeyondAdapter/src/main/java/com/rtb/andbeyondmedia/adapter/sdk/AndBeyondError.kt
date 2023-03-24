@@ -1,4 +1,4 @@
-package com.rtb.andbeyondmedia.adapter
+package com.rtb.andbeyondmedia.adapter.sdk
 
 import com.google.android.gms.ads.AdError
 

@@ -11,6 +11,7 @@ import com.google.android.gms.ads.mediation.*
 class AndBeyondAdapter : Adapter() {
 
     private lateinit var bannerLoader: AndBeyondBannerLoader
+    private lateinit var interstitialLoader: AndBeyondInterstitialLoader
 
     companion object {
         private val TAG: String = this::class.java.simpleName
@@ -19,7 +20,7 @@ class AndBeyondAdapter : Adapter() {
         fun createAdRequest(mediationAdConfiguration: MediationAdConfiguration): AdManagerAdRequest {
             /*  request.setTestMode(mediationAdConfiguration.isTestRequest)
               request.setKeywords(mediationAdConfiguration.mediationExtras.keySet())*/
-            return AdManagerAdRequest.Builder().build()
+            return AdManagerAdRequest.Builder().addCustomTargeting("hb_format", "amp").build()
         }
     }
 
@@ -48,8 +49,15 @@ class AndBeyondAdapter : Adapter() {
 
     override fun loadBannerAd(mediationBannerAdConfiguration: MediationBannerAdConfiguration, mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>) {
         super.loadBannerAd(mediationBannerAdConfiguration, mediationAdLoadCallback)
-        Log.d(TAG, "loadBannerAd:  sonu adapter")
+        Log.d(TAG, "loadBannerAd")
         bannerLoader = AndBeyondBannerLoader(mediationBannerAdConfiguration, mediationAdLoadCallback)
         bannerLoader.loadAd()
+    }
+
+    override fun loadInterstitialAd(mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration, callback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>) {
+        super.loadInterstitialAd(mediationInterstitialAdConfiguration, callback)
+        Log.d(TAG, "loadInterstitialAd:")
+        interstitialLoader = AndBeyondInterstitialLoader(mediationInterstitialAdConfiguration, callback)
+        interstitialLoader.loadAd()
     }
 }

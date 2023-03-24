@@ -3,25 +3,44 @@ package com.rtb.andbeyondmedia.adapter
 import android.content.res.Resources
 import android.util.Log
 import android.view.View
+import androidx.lifecycle.Observer
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.admanager.AdManagerAdView
 import com.google.android.gms.ads.mediation.MediationAdLoadCallback
 import com.google.android.gms.ads.mediation.MediationBannerAd
 import com.google.android.gms.ads.mediation.MediationBannerAdCallback
 import com.google.android.gms.ads.mediation.MediationBannerAdConfiguration
+import com.rtb.andbeyondmedia.adapter.config.AdTypes
+import com.rtb.andbeyondmedia.adapter.config.ConfigSetWorker
+import com.rtb.andbeyondmedia.adapter.config.SDKConfig
+import com.rtb.andbeyondmedia.adapter.config.StoreService
+import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.prebid.mobile.BannerAdUnit
 import kotlin.math.roundToInt
 
 internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration: MediationBannerAdConfiguration,
-                                     private val mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>) : MediationBannerAd, AdListener() {
+                                     private val mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>)
+    : MediationBannerAd, AdListener(), KoinComponent {
 
 
     private lateinit var adView: AdManagerAdView
     private lateinit var bannerAdCallback: MediationBannerAdCallback
+    private var sdkConfig: SDKConfig? = null
+    private val storeService: StoreService by inject()
 
     companion object {
         private val TAG: String = this::class.java.simpleName
+    }
+
+    init {
+        sdkConfig = storeService.config
     }
 
     public fun loadAd() {
@@ -43,11 +62,46 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
         val displayMetrics = Resources.getSystem().displayMetrics
         val widthInDp = (widthInPixels / displayMetrics.density).roundToInt()
         val heightInDp = (heightInPixels / displayMetrics.density).roundToInt()
-        adView.setAdSize(AdSize(widthInDp, heightInDp))
+        val adSize = AdSize(widthInDp, heightInDp)
+        adView.setAdSize(adSize)
         adView.adListener = this
         val request = AndBeyondAdapter.createAdRequest(mediationBannerAdConfiguration)
         Log.i(TAG, "Start fetching banner ad.")
-        adView.loadAd(request)
+        fetchDemand(adSize, request) { adView.loadAd(request) }
+    }
+
+    private fun fetchDemand(adSize: AdSize, adRequest: AdManagerAdRequest, callback: () -> Unit) =
+            shouldSetConfig { status ->
+                if (status) {
+                    val placementId = sdkConfig?.refreshConfig?.firstOrNull { it.type == AdTypes.BANNER }?.placement?.firstLook
+                    if (placementId == null || sdkConfig?.prebid?.firstLook != 1) {
+                        callback()
+                    } else {
+                        val adUnit = BannerAdUnit(placementId, adSize.width, adSize.height)
+                        adUnit.fetchDemand(adRequest) { callback() }
+                    }
+                } else {
+                    callback()
+                }
+            }
+
+    private fun shouldSetConfig(callback: (Boolean) -> Unit) {
+        val workManager: WorkManager by inject()
+        val workers = workManager.getWorkInfosForUniqueWork(ConfigSetWorker::class.java.simpleName).get()
+        if (workers.isNullOrEmpty()) {
+            callback(false)
+        } else {
+            val workerData = workManager.getWorkInfoByIdLiveData(workers[0].id)
+            workerData.observeForever(object : Observer<WorkInfo> {
+                override fun onChanged(workInfo: WorkInfo?) {
+                    if (workInfo == null || (workInfo.state != WorkInfo.State.RUNNING && workInfo.state != WorkInfo.State.ENQUEUED)) {
+                        workerData.removeObserver(this)
+                        sdkConfig = storeService.config
+                        callback(sdkConfig != null)
+                    }
+                }
+            })
+        }
     }
 
     override fun getView(): View {
