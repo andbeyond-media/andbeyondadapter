@@ -1,11 +1,11 @@
 package com.rtb.andbeyondmedia.adapter
 
+import android.content.Context
 import android.content.res.Resources
 import android.util.Log
 import android.view.View
 import androidx.lifecycle.Observer
 import androidx.work.WorkInfo
-import androidx.work.WorkManager
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.LoadAdError
@@ -16,32 +16,24 @@ import com.google.android.gms.ads.mediation.MediationBannerAd
 import com.google.android.gms.ads.mediation.MediationBannerAdCallback
 import com.google.android.gms.ads.mediation.MediationBannerAdConfiguration
 import com.rtb.andbeyondmedia.adapter.config.AdTypes
+import com.rtb.andbeyondmedia.adapter.config.AndBeyondMedia
 import com.rtb.andbeyondmedia.adapter.config.ConfigSetWorker
 import com.rtb.andbeyondmedia.adapter.config.SDKConfig
 import com.rtb.andbeyondmedia.adapter.config.StoreService
 import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.prebid.mobile.BannerAdUnit
 import kotlin.math.roundToInt
 
 internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration: MediationBannerAdConfiguration,
                                      private val mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>)
-    : MediationBannerAd, AdListener(), KoinComponent {
+    : MediationBannerAd, AdListener() {
 
 
     private lateinit var adView: AdManagerAdView
     private lateinit var bannerAdCallback: MediationBannerAdCallback
     private var sdkConfig: SDKConfig? = null
-    private val storeService: StoreService by inject()
-
-    companion object {
-        private val TAG: String = this::class.java.simpleName
-    }
-
-    init {
-        sdkConfig = storeService.config
-    }
+    private lateinit var storeService: StoreService
+    private val TAG: String = this::class.java.simpleName
 
     public fun loadAd() {
         Log.i(TAG, "Begin loading banner ad.")
@@ -52,6 +44,9 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
         }
         Log.d(TAG, "Received server parameter. $serverParameter")
         val context = mediationBannerAdConfiguration.context
+        storeService = AndBeyondMedia.getStoreService(context)
+        sdkConfig = storeService.config
+
         adView = AdManagerAdView(context)
         adView.adUnitId = serverParameter
 
@@ -67,11 +62,11 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
         adView.adListener = this
         val request = AndBeyondAdapter.createAdRequest(mediationBannerAdConfiguration)
         Log.i(TAG, "Start fetching banner ad.")
-        fetchDemand(adSize, request) { adView.loadAd(request) }
+        fetchDemand(context, adSize, request) { adView.loadAd(request) }
     }
 
-    private fun fetchDemand(adSize: AdSize, adRequest: AdManagerAdRequest, callback: () -> Unit) =
-            shouldSetConfig { status ->
+    private fun fetchDemand(context: Context, adSize: AdSize, adRequest: AdManagerAdRequest, callback: () -> Unit) =
+            shouldSetConfig(context) { status ->
                 if (status) {
                     val placementId = sdkConfig?.refreshConfig?.firstOrNull { it.type == AdTypes.BANNER }?.placement?.firstLook
                     if (placementId == null || sdkConfig?.prebid?.firstLook != 1) {
@@ -85,8 +80,8 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
                 }
             }
 
-    private fun shouldSetConfig(callback: (Boolean) -> Unit) {
-        val workManager: WorkManager by inject()
+    private fun shouldSetConfig(context: Context, callback: (Boolean) -> Unit) {
+        val workManager = AndBeyondMedia.getWorkManager(context)
         val workers = workManager.getWorkInfosForUniqueWork(ConfigSetWorker::class.java.simpleName).get()
         if (workers.isNullOrEmpty()) {
             callback(false)

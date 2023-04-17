@@ -14,25 +14,16 @@ import com.google.android.gms.ads.mediation.MediationInterstitialAdConfiguration
 import com.rtb.andbeyondmedia.adapter.config.SDKConfig
 import com.rtb.andbeyondmedia.adapter.config.StoreService
 import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class AndBeyondInterstitialLoader(private val mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration,
                                   private val mediationAdLoadCallback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>)
-    : MediationInterstitialAd, KoinComponent, AdManagerInterstitialAdLoadCallback() {
+    : MediationInterstitialAd, AdManagerInterstitialAdLoadCallback() {
 
     private lateinit var interstitialAdCallback: MediationInterstitialAdCallback
     private var mAdManagerInterstitialAd: AdManagerInterstitialAd? = null
     private var sdkConfig: SDKConfig? = null
-    private val storeService: StoreService by inject()
-
-    companion object {
-        private val TAG: String = this::class.java.simpleName
-    }
-
-    init {
-        sdkConfig = storeService.config
-    }
+    private lateinit var storeService: StoreService
+    private val TAG: String = this::class.java.simpleName
 
     fun loadAd() {
         Log.i(TAG, "Begin loading interstitial ad.")

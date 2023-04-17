@@ -8,12 +8,6 @@ import com.google.android.gms.ads.MobileAds
 import com.google.gson.Gson
 import com.rtb.andbeyondmedia.adapter.config.URLs.BASE_URL
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.context.startKoin
-import org.koin.dsl.module
 import org.prebid.mobile.Host
 import org.prebid.mobile.PrebidMobile
 import org.prebid.mobile.api.exceptions.InitError
@@ -26,12 +20,41 @@ import retrofit2.http.QueryMap
 import java.util.concurrent.TimeUnit
 
 object AndBeyondMedia {
+    private var storeService: StoreService? = null
+    private var configService: ConfigService? = null
+    private var workManager: WorkManager? = null
+
     fun initialize(context: Context) {
-        startKoin {
-            androidContext(context)
-            modules(sdkModule)
-        }
         fetchConfig(context)
+    }
+
+    internal fun getStoreService(context: Context): StoreService {
+        @Synchronized
+        if (storeService == null) {
+            storeService = StoreService(context.getSharedPreferences("com.rtb.andbeyondmedia", Context.MODE_PRIVATE))
+        }
+        return storeService as StoreService
+    }
+
+    internal fun getConfigService(): ConfigService {
+        @Synchronized
+        if (configService == null) {
+            val client = OkHttpClient.Builder()
+                    .connectTimeout(3, TimeUnit.SECONDS)
+                    .writeTimeout(3, TimeUnit.SECONDS)
+                    .readTimeout(3, TimeUnit.SECONDS).hostnameVerifier { _, _ -> true }.build()
+            configService = Retrofit.Builder().baseUrl(BASE_URL).client(client)
+                    .addConverterFactory(GsonConverterFactory.create()).build().create(ConfigService::class.java)
+        }
+        return configService as ConfigService
+    }
+
+    internal fun getWorkManager(context: Context): WorkManager {
+        @Synchronized
+        if (workManager == null) {
+            workManager = WorkManager.getInstance(context)
+        }
+        return workManager as WorkManager
     }
 
     private fun fetchConfig(context: Context) {
@@ -40,41 +63,18 @@ object AndBeyondMedia {
         val workManager = WorkManager.getInstance(context)
         workManager.enqueueUniqueWork(ConfigSetWorker::class.java.simpleName, ExistingWorkPolicy.REPLACE, workerRequest)
         workManager.getWorkInfoByIdLiveData(workerRequest.id).observeForever {
-            if (it.state == WorkInfo.State.SUCCEEDED) {
+            if (it?.state == WorkInfo.State.SUCCEEDED) {
                 SDKManager.initialize(context)
             }
         }
     }
 }
 
-internal val sdkModule = module {
-
-    single { WorkManager.getInstance(androidContext()) }
-
-    single {
-        StoreService(androidContext().getSharedPreferences(androidContext().packageName, Context.MODE_PRIVATE))
-    }
-
-    single {
-        val bodyInterceptor = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
-        OkHttpClient.Builder().addInterceptor(bodyInterceptor)
-                .connectTimeout(3, TimeUnit.SECONDS)
-                .writeTimeout(3, TimeUnit.SECONDS)
-                .readTimeout(3, TimeUnit.SECONDS).hostnameVerifier { _, _ -> true }.build()
-    }
-
-    single {
-        val client = Retrofit.Builder().baseUrl(BASE_URL).client(get())
-                .addConverterFactory(GsonConverterFactory.create()).build()
-        client.create(ConfigService::class.java)
-    }
-}
-
-internal class ConfigSetWorker(private val context: Context, params: WorkerParameters) : Worker(context, params), KoinComponent {
+internal class ConfigSetWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
-        val storeService: StoreService by inject()
+        val storeService = AndBeyondMedia.getStoreService(context)
         return try {
-            val configService: ConfigService by inject()
+            val configService = AndBeyondMedia.getConfigService()
             val response = configService.getConfig(hashMapOf("Name" to context.packageName)).execute()
             if (response.isSuccessful && response.body() != null) {
                 storeService.config = response.body()
@@ -93,10 +93,10 @@ internal class ConfigSetWorker(private val context: Context, params: WorkerParam
     }
 }
 
-internal object SDKManager : KoinComponent {
+internal object SDKManager {
 
     fun initialize(context: Context) {
-        val storeService: StoreService by inject()
+        val storeService = AndBeyondMedia.getStoreService(context)
         val config = storeService.config ?: return
         if (config.switch != 1) return
         PrebidMobile.setPrebidServerHost(Host.createCustomHost(config.prebid?.host ?: ""))

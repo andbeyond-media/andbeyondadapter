@@ -12,9 +12,9 @@ class AndBeyondAdapter : Adapter() {
 
     private lateinit var bannerLoader: AndBeyondBannerLoader
     private lateinit var interstitialLoader: AndBeyondInterstitialLoader
+    private val TAG: String = this::class.java.simpleName
 
     companion object {
-        private val TAG: String = this::class.java.simpleName
 
         @SuppressLint("VisibleForTests")
         fun createAdRequest(mediationAdConfiguration: MediationAdConfiguration): AdManagerAdRequest {
@@ -25,7 +25,7 @@ class AndBeyondAdapter : Adapter() {
     }
 
     override fun initialize(context: Context, initializationCompleteCallback: InitializationCompleteCallback, list: List<MediationConfiguration>) {
-        Log.d(TAG, "initialize: sonu adapter")
+        Log.d(TAG, "initialize: AndBeyondAdapter")
         return
     }
 
