@@ -19,7 +19,7 @@ import retrofit2.http.GET
 import retrofit2.http.QueryMap
 import java.util.concurrent.TimeUnit
 
-object AndBeyondMedia {
+object AndBeyondMediaAdapter {
     private var storeService: StoreService? = null
     private var configService: ConfigService? = null
     private var workManager: WorkManager? = null
@@ -31,7 +31,7 @@ object AndBeyondMedia {
     internal fun getStoreService(context: Context): StoreService {
         @Synchronized
         if (storeService == null) {
-            storeService = StoreService(context.getSharedPreferences("com.rtb.andbeyondmedia", Context.MODE_PRIVATE))
+            storeService = StoreService(context.getSharedPreferences("com.rtb.andbeyondmedia.adapter", Context.MODE_PRIVATE))
         }
         return storeService as StoreService
     }
@@ -72,9 +72,9 @@ object AndBeyondMedia {
 
 internal class ConfigSetWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
-        val storeService = AndBeyondMedia.getStoreService(context)
+        val storeService = AndBeyondMediaAdapter.getStoreService(context)
         return try {
-            val configService = AndBeyondMedia.getConfigService()
+            val configService = AndBeyondMediaAdapter.getConfigService()
             val response = configService.getConfig(hashMapOf("Name" to context.packageName)).execute()
             if (response.isSuccessful && response.body() != null) {
                 storeService.config = response.body()
@@ -96,7 +96,7 @@ internal class ConfigSetWorker(private val context: Context, params: WorkerParam
 internal object SDKManager {
 
     fun initialize(context: Context) {
-        val storeService = AndBeyondMedia.getStoreService(context)
+        val storeService = AndBeyondMediaAdapter.getStoreService(context)
         val config = storeService.config ?: return
         if (config.switch != 1) return
         PrebidMobile.setPrebidServerHost(Host.createCustomHost(config.prebid?.host ?: ""))

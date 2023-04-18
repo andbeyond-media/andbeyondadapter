@@ -1,12 +1,12 @@
 package com.rtb.andbeyondmedia
 
 import android.app.Application
-import com.rtb.andbeyondmedia.adapter.config.AndBeyondMedia
+import com.rtb.andbeyondmedia.adapter.config.AndBeyondMediaAdapter
 
         class ThisApplication : Application() {
 
             override fun onCreate() {
                 super.onCreate()
-                AndBeyondMedia.initialize(this)
+                AndBeyondMediaAdapter.initialize(this)
             }
         }

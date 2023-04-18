@@ -16,7 +16,7 @@ import com.google.android.gms.ads.mediation.MediationBannerAd
 import com.google.android.gms.ads.mediation.MediationBannerAdCallback
 import com.google.android.gms.ads.mediation.MediationBannerAdConfiguration
 import com.rtb.andbeyondmedia.adapter.config.AdTypes
-import com.rtb.andbeyondmedia.adapter.config.AndBeyondMedia
+import com.rtb.andbeyondmedia.adapter.config.AndBeyondMediaAdapter
 import com.rtb.andbeyondmedia.adapter.config.ConfigSetWorker
 import com.rtb.andbeyondmedia.adapter.config.SDKConfig
 import com.rtb.andbeyondmedia.adapter.config.StoreService
@@ -44,7 +44,7 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
         }
         Log.d(TAG, "Received server parameter. $serverParameter")
         val context = mediationBannerAdConfiguration.context
-        storeService = AndBeyondMedia.getStoreService(context)
+        storeService = AndBeyondMediaAdapter.getStoreService(context)
         sdkConfig = storeService.config
 
         adView = AdManagerAdView(context)
@@ -81,7 +81,7 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
             }
 
     private fun shouldSetConfig(context: Context, callback: (Boolean) -> Unit) {
-        val workManager = AndBeyondMedia.getWorkManager(context)
+        val workManager = AndBeyondMediaAdapter.getWorkManager(context)
         val workers = workManager.getWorkInfosForUniqueWork(ConfigSetWorker::class.java.simpleName).get()
         if (workers.isNullOrEmpty()) {
             callback(false)

@@ -38,5 +38,6 @@ dependencies {
 
     implementation rootProject.ext.playServicesAds
     implementation rootProject.ext.appcompat
+    implementation "com.squareup.retrofit2:converter-gson:2.9.0"
     implementation project(':AndBeyondAdapter')
 }
