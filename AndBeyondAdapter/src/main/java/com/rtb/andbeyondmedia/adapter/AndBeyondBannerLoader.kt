@@ -16,8 +16,8 @@ import com.google.android.gms.ads.mediation.MediationBannerAd
 import com.google.android.gms.ads.mediation.MediationBannerAdCallback
 import com.google.android.gms.ads.mediation.MediationBannerAdConfiguration
 import com.rtb.andbeyondmedia.adapter.config.AdTypes
+import com.rtb.andbeyondmedia.adapter.config.AdapterConfigSetWorker
 import com.rtb.andbeyondmedia.adapter.config.AndBeyondMediaAdapter
-import com.rtb.andbeyondmedia.adapter.config.ConfigSetWorker
 import com.rtb.andbeyondmedia.adapter.config.SDKConfig
 import com.rtb.andbeyondmedia.adapter.config.StoreService
 import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
@@ -82,7 +82,7 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
 
     private fun shouldSetConfig(context: Context, callback: (Boolean) -> Unit) {
         val workManager = AndBeyondMediaAdapter.getWorkManager(context)
-        val workers = workManager.getWorkInfosForUniqueWork(ConfigSetWorker::class.java.simpleName).get()
+        val workers = workManager.getWorkInfosForUniqueWork(AdapterConfigSetWorker::class.java.simpleName).get()
         if (workers.isNullOrEmpty()) {
             callback(false)
         } else {

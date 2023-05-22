@@ -66,13 +66,13 @@ object AndBeyondMediaAdapter {
         try {
             val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
             val workerRequest: OneTimeWorkRequest = delay?.let {
-                OneTimeWorkRequestBuilder<ConfigSetWorker>().setConstraints(constraints).setInitialDelay(it, TimeUnit.SECONDS).build()
+                OneTimeWorkRequestBuilder<AdapterConfigSetWorker>().setConstraints(constraints).setInitialDelay(it, TimeUnit.SECONDS).build()
             } ?: kotlin.run {
-                OneTimeWorkRequestBuilder<ConfigSetWorker>().setConstraints(constraints).build()
+                OneTimeWorkRequestBuilder<AdapterConfigSetWorker>().setConstraints(constraints).build()
             }
             val workManager = WorkManager.getInstance(context)
             val storeService = getStoreService(context)
-            workManager.enqueueUniqueWork(ConfigSetWorker::class.java.simpleName + this.javaClass.simpleName, ExistingWorkPolicy.REPLACE, workerRequest)
+            workManager.enqueueUniqueWork(AdapterConfigSetWorker::class.java.simpleName + this.javaClass.simpleName, ExistingWorkPolicy.REPLACE, workerRequest)
             workManager.getWorkInfoByIdLiveData(workerRequest.id).observeForever {
                 if (it?.state == WorkInfo.State.SUCCEEDED) {
                     SDKManager.initialize(context)
@@ -87,7 +87,7 @@ object AndBeyondMediaAdapter {
     }
 }
 
-internal class ConfigSetWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
+internal class AdapterConfigSetWorker(private val context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
         val storeService = AndBeyondMediaAdapter.getStoreService(context)
         return try {
