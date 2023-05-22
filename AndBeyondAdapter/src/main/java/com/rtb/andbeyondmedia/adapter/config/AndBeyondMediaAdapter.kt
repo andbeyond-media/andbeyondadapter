@@ -92,7 +92,7 @@ internal class ConfigSetWorker(private val context: Context, params: WorkerParam
         val storeService = AndBeyondMediaAdapter.getStoreService(context)
         return try {
             val configService = AndBeyondMediaAdapter.getConfigService()
-            val response = configService.getConfig(hashMapOf("Name" to context.packageName)).execute()
+            val response = configService.getConfig(hashMapOf("name" to context.packageName)).execute()
             if (response.isSuccessful && response.body() != null) {
                 storeService.config = response.body()
                 Result.success()
