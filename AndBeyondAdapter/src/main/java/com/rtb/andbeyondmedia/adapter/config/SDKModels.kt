@@ -7,6 +7,7 @@ internal data class SDKConfig(
         val prebid: Prebid? = null,
         @SerializedName("global")
         val switch: Int? = null,
+        val refetch: Long? = null,
         @SerializedName("config")
         val refreshConfig: List<RefreshConfig>? = null,
 ) {
@@ -17,7 +18,10 @@ internal data class SDKConfig(
             val other: Int? = null,
             val host: String? = null,
             @SerializedName("accountid")
-            val accountId: String? = null
+            val accountId: String? = null,
+            val timeout: String? = null,
+            val debug: Int = 0,
+            val schain: String? = null
     )
 
     data class RefreshConfig(

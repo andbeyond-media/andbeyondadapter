@@ -13,3 +13,7 @@ internal object AdTypes {
     const val INTERSTITIAL = "INTERSTITIAL"
     const val NATIVE = "NATIVE"
 }
+
+internal enum class LogLevel {
+    DEBUG, INFO, ERROR
+}

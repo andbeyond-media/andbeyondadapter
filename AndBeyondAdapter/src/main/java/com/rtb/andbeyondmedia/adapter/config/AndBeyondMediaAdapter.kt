@@ -2,16 +2,16 @@ package com.rtb.andbeyondmedia.adapter.config
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.work.*
 import com.google.android.gms.ads.MobileAds
 import com.google.gson.Gson
 import com.rtb.andbeyondmedia.adapter.config.URLs.BASE_URL
+import com.rtb.andbeyondmedia.adapter.sdk.log
 import okhttp3.OkHttpClient
 import org.prebid.mobile.Host
 import org.prebid.mobile.PrebidMobile
-import org.prebid.mobile.api.exceptions.InitError
-import org.prebid.mobile.rendering.listeners.SdkInitializationListener
+import org.prebid.mobile.TargetingParams
+import org.prebid.mobile.rendering.models.openrtb.bidRequests.Ext
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -23,15 +23,19 @@ object AndBeyondMediaAdapter {
     private var storeService: StoreService? = null
     private var configService: ConfigService? = null
     private var workManager: WorkManager? = null
+    private var logEnabled = false
 
-    fun initialize(context: Context) {
+    fun initialize(context: Context, logsEnabled: Boolean = false) {
+        this.logEnabled = logsEnabled
         fetchConfig(context)
     }
+
+    internal fun logEnabled() = logEnabled
 
     internal fun getStoreService(context: Context): StoreService {
         @Synchronized
         if (storeService == null) {
-            storeService = StoreService(context.getSharedPreferences("com.rtb.andbeyondmedia.adapter", Context.MODE_PRIVATE))
+            storeService = StoreService(context.getSharedPreferences(this.toString().substringBefore("@"), Context.MODE_PRIVATE))
         }
         return storeService as StoreService
     }
@@ -57,15 +61,28 @@ object AndBeyondMediaAdapter {
         return workManager as WorkManager
     }
 
-    private fun fetchConfig(context: Context) {
-        val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val workerRequest = OneTimeWorkRequestBuilder<ConfigSetWorker>().setConstraints(constraints).build()
-        val workManager = WorkManager.getInstance(context)
-        workManager.enqueueUniqueWork(ConfigSetWorker::class.java.simpleName, ExistingWorkPolicy.REPLACE, workerRequest)
-        workManager.getWorkInfoByIdLiveData(workerRequest.id).observeForever {
-            if (it?.state == WorkInfo.State.SUCCEEDED) {
-                SDKManager.initialize(context)
+    private fun fetchConfig(context: Context, delay: Long? = null) {
+        if (delay != null && delay < 900) return
+        try {
+            val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            val workerRequest: OneTimeWorkRequest = delay?.let {
+                OneTimeWorkRequestBuilder<ConfigSetWorker>().setConstraints(constraints).setInitialDelay(it, TimeUnit.SECONDS).build()
+            } ?: kotlin.run {
+                OneTimeWorkRequestBuilder<ConfigSetWorker>().setConstraints(constraints).build()
             }
+            val workManager = WorkManager.getInstance(context)
+            val storeService = getStoreService(context)
+            workManager.enqueueUniqueWork(ConfigSetWorker::class.java.simpleName + this.javaClass.simpleName, ExistingWorkPolicy.REPLACE, workerRequest)
+            workManager.getWorkInfoByIdLiveData(workerRequest.id).observeForever {
+                if (it?.state == WorkInfo.State.SUCCEEDED) {
+                    SDKManager.initialize(context)
+                    if (storeService.config != null && storeService.config?.refetch != null) {
+                        fetchConfig(context, storeService.config?.refetch)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            SDKManager.initialize(context)
         }
     }
 }
@@ -85,7 +102,7 @@ internal class ConfigSetWorker(private val context: Context, params: WorkerParam
                 } ?: Result.failure()
             }
         } catch (e: Exception) {
-            Log.e(TAG, e.message ?: "")
+            LogLevel.ERROR.log(e.message ?: "")
             storeService.config?.let {
                 Result.success()
             } ?: Result.failure()
@@ -96,26 +113,30 @@ internal class ConfigSetWorker(private val context: Context, params: WorkerParam
 internal object SDKManager {
 
     fun initialize(context: Context) {
+        initializeGAM(context)
         val storeService = AndBeyondMediaAdapter.getStoreService(context)
         val config = storeService.config ?: return
         if (config.switch != 1) return
-        PrebidMobile.setPrebidServerHost(Host.createCustomHost(config.prebid?.host ?: ""))
-        PrebidMobile.setPrebidServerAccountId(config.prebid?.accountId ?: "")
-        PrebidMobile.initializeSdk(context, object : SdkInitializationListener {
-            override fun onSdkInit() {
-                Log.i(TAG, "Prebid Initialized")
-            }
+        initializePrebid(context, config.prebid)
+    }
 
-            override fun onSdkFailedToInit(error: InitError?) {
-                Log.e(TAG, error?.error ?: "")
-            }
-        })
-        initializeGAM(context)
+    private fun initializePrebid(context: Context, prebid: SDKConfig.Prebid?) {
+        if (PrebidMobile.isSdkInitialized()) return
+        PrebidMobile.setPbsDebug(prebid?.debug == 1)
+        PrebidMobile.setPrebidServerHost(Host.createCustomHost(prebid?.host ?: ""))
+        PrebidMobile.setPrebidServerAccountId(prebid?.accountId ?: "")
+        PrebidMobile.setTimeoutMillis(prebid?.timeout?.toIntOrNull() ?: 1000)
+        PrebidMobile.initializeSdk(context) { LogLevel.INFO.log("Prebid Initialization Completed") }
+        prebid?.schain?.let {
+            TargetingParams.setUserExt(Ext().apply {
+                put("schain", it)
+            })
+        }
     }
 
     private fun initializeGAM(context: Context) {
         MobileAds.initialize(context) {
-            Log.i(TAG, "GAM Initialization complete.")
+            LogLevel.INFO.log("GAM Initialization complete.")
         }
     }
 }
