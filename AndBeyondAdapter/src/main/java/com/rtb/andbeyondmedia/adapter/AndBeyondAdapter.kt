@@ -48,14 +48,12 @@ class AndBeyondAdapter : Adapter() {
     }
 
     override fun loadBannerAd(mediationBannerAdConfiguration: MediationBannerAdConfiguration, mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>) {
-        super.loadBannerAd(mediationBannerAdConfiguration, mediationAdLoadCallback)
         Log.d(TAG, "loadBannerAd")
         bannerLoader = AndBeyondBannerLoader(mediationBannerAdConfiguration, mediationAdLoadCallback)
         bannerLoader.loadAd()
     }
 
     override fun loadInterstitialAd(mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration, callback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>) {
-        super.loadInterstitialAd(mediationInterstitialAdConfiguration, callback)
         Log.d(TAG, "loadInterstitialAd:")
         interstitialLoader = AndBeyondInterstitialLoader(mediationInterstitialAdConfiguration, callback)
         interstitialLoader.loadAd()

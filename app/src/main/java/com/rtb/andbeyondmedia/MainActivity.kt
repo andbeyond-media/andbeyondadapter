@@ -2,6 +2,7 @@ package com.rtb.andbeyondmedia
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.ads.*
@@ -26,6 +27,12 @@ class MainActivity : AppCompatActivity() {
     private fun loadAd() {
         val adRequest = AdManagerAdRequest.Builder().build()
         binding.adView.loadAd(adRequest)
+        binding.adView.adListener = object : AdListener() {
+            override fun onAdLoaded() {
+                super.onAdLoaded()
+                Log.d("AndBeyondAdapter", "onAdLoaded: ${binding.adView.responseInfo.toString()}")
+            }
+        }
     }
 
     private fun loadAd2() {

@@ -22,6 +22,8 @@ import com.rtb.andbeyondmedia.adapter.config.SDKConfig
 import com.rtb.andbeyondmedia.adapter.config.StoreService
 import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
 import org.prebid.mobile.BannerAdUnit
+import org.prebid.mobile.addendum.AdViewUtils
+import org.prebid.mobile.addendum.PbFindSizeError
 import kotlin.math.roundToInt
 
 internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration: MediationBannerAdConfiguration,
@@ -86,16 +88,21 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
         if (workers.isNullOrEmpty()) {
             callback(false)
         } else {
-            val workerData = workManager.getWorkInfoByIdLiveData(workers[0].id)
-            workerData.observeForever(object : Observer<WorkInfo> {
-                override fun onChanged(workInfo: WorkInfo?) {
-                    if (workInfo == null || (workInfo.state != WorkInfo.State.RUNNING && workInfo.state != WorkInfo.State.ENQUEUED)) {
-                        workerData.removeObserver(this)
-                        sdkConfig = storeService.config
-                        callback(sdkConfig != null)
+            try {
+                val workerData = workManager.getWorkInfoByIdLiveData(workers[0].id)
+                workerData.observeForever(object : Observer<WorkInfo> {
+                    override fun onChanged(workInfo: WorkInfo?) {
+                        if (workInfo == null || (workInfo.state != WorkInfo.State.RUNNING && workInfo.state != WorkInfo.State.ENQUEUED)) {
+                            workerData.removeObserver(this)
+                            sdkConfig = storeService.config
+                            callback(sdkConfig != null)
+                        }
                     }
-                }
-            })
+                })
+            } catch (e: Exception) {
+                callback(false)
+            }
+
         }
     }
 
@@ -122,6 +129,13 @@ internal class AndBeyondBannerLoader(private val mediationBannerAdConfiguration:
 
     override fun onAdLoaded() {
         Log.d(TAG, "Received the banner ad.")
+        AdViewUtils.findPrebidCreativeSize(adView, object : AdViewUtils.PbFindSizeListener {
+            override fun success(width: Int, height: Int) {
+                adView.setAdSizes(AdSize(width, height))
+            }
+
+            override fun failure(error: PbFindSizeError) {}
+        })
         bannerAdCallback = mediationAdLoadCallback.onSuccess(this)
         bannerAdCallback.reportAdImpression()
     }
