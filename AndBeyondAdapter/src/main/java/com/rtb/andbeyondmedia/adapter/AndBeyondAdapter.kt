@@ -2,10 +2,11 @@ package com.rtb.andbeyondmedia.adapter
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.mediation.*
+import com.rtb.andbeyondmedia.adapter.config.LogLevel
+import com.rtb.andbeyondmedia.adapter.sdk.log
 
 
 class AndBeyondAdapter : Adapter() {
@@ -18,14 +19,12 @@ class AndBeyondAdapter : Adapter() {
 
         @SuppressLint("VisibleForTests")
         fun createAdRequest(mediationAdConfiguration: MediationAdConfiguration): AdManagerAdRequest {
-            /*  request.setTestMode(mediationAdConfiguration.isTestRequest)
-              request.setKeywords(mediationAdConfiguration.mediationExtras.keySet())*/
             return AdManagerAdRequest.Builder().addCustomTargeting("hb_format", "amp").build()
         }
     }
 
     override fun initialize(context: Context, initializationCompleteCallback: InitializationCompleteCallback, list: List<MediationConfiguration>) {
-        Log.d(TAG, "initialize: AndBeyondAdapter")
+        LogLevel.INFO.log(TAG, "initialize: AndBeyondAdapter")
         return
     }
 
@@ -48,15 +47,13 @@ class AndBeyondAdapter : Adapter() {
     }
 
     override fun loadBannerAd(mediationBannerAdConfiguration: MediationBannerAdConfiguration, mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>) {
-        super.loadBannerAd(mediationBannerAdConfiguration, mediationAdLoadCallback)
-        Log.d(TAG, "loadBannerAd")
+        LogLevel.INFO.log(TAG, "loadBannerAd")
         bannerLoader = AndBeyondBannerLoader(mediationBannerAdConfiguration, mediationAdLoadCallback)
         bannerLoader.loadAd()
     }
 
     override fun loadInterstitialAd(mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration, callback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>) {
-        super.loadInterstitialAd(mediationInterstitialAdConfiguration, callback)
-        Log.d(TAG, "loadInterstitialAd:")
+        LogLevel.INFO.log(TAG, "loadInterstitialAd:")
         interstitialLoader = AndBeyondInterstitialLoader(mediationInterstitialAdConfiguration, callback)
         interstitialLoader.loadAd()
     }
