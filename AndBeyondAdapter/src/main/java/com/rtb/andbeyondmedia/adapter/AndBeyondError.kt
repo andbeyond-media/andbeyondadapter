@@ -1,4 +1,4 @@
-package com.rtb.andbeyondmedia.adapter.sdk
+package com.rtb.andbeyondmedia.adapter
 
 import com.google.android.gms.ads.AdError
 
@@ -30,7 +30,8 @@ object AndBeyondError {
         return AdError(
                 ERROR_NO_ACTIVITY_CONTEXT,
                 "An activity context is required to show the sample ad",
-                CUSTOM_EVENT_ERROR_DOMAIN)
+                CUSTOM_EVENT_ERROR_DOMAIN
+        )
     }
 
     /**

@@ -2,6 +2,7 @@ package com.rtb.andbeyondmedia.adapter
 
 import android.app.Activity
 import android.content.Context
+import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAd
@@ -10,12 +11,9 @@ import com.google.android.gms.ads.mediation.MediationAdLoadCallback
 import com.google.android.gms.ads.mediation.MediationInterstitialAd
 import com.google.android.gms.ads.mediation.MediationInterstitialAdCallback
 import com.google.android.gms.ads.mediation.MediationInterstitialAdConfiguration
-import com.rtb.andbeyondmedia.adapter.config.LogLevel
-import com.rtb.andbeyondmedia.adapter.sdk.AndBeyondError
-import com.rtb.andbeyondmedia.adapter.sdk.log
 
-class AndBeyondInterstitialLoader(private val mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration,
-                                  private val mediationAdLoadCallback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>)
+class InterstitialLoader(private val mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration,
+                         private val mediationAdLoadCallback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>)
     : MediationInterstitialAd, AdManagerInterstitialAdLoadCallback() {
 
     private lateinit var interstitialAdCallback: MediationInterstitialAdCallback
@@ -23,13 +21,13 @@ class AndBeyondInterstitialLoader(private val mediationInterstitialAdConfigurati
     private val TAG: String = this::class.java.simpleName
 
     fun loadAd() {
-        LogLevel.INFO.log(TAG, "Begin loading interstitial ad.")
+        Logger.INFO.log(TAG, "Begin loading interstitial ad.")
         val serverParameter = mediationInterstitialAdConfiguration.serverParameters.getString("parameter")
         if (serverParameter.isNullOrEmpty()) {
             mediationAdLoadCallback.onFailure(AndBeyondError.createCustomEventNoAdIdError())
             return
         }
-        LogLevel.INFO.log(TAG, "Received server parameter. $serverParameter")
+        Logger.INFO.log(TAG, "Received server parameter. $serverParameter")
         val context = mediationInterstitialAdConfiguration.context
         val request = AndBeyondAdapter.createAdRequest(mediationInterstitialAdConfiguration)
         AdManagerInterstitialAd.load(context, serverParameter, request, this)
@@ -45,6 +43,11 @@ class AndBeyondInterstitialLoader(private val mediationInterstitialAdConfigurati
         interstitialAdCallback = mediationAdLoadCallback.onSuccess(this)
         mAdManagerInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
 
+            override fun onAdClicked() {
+                super.onAdClicked()
+                interstitialAdCallback.reportAdClicked()
+            }
+
             override fun onAdImpression() {
                 super.onAdImpression()
                 interstitialAdCallback.reportAdImpression()
@@ -52,12 +55,17 @@ class AndBeyondInterstitialLoader(private val mediationInterstitialAdConfigurati
 
             override fun onAdDismissedFullScreenContent() {
                 super.onAdDismissedFullScreenContent()
-                interstitialAdCallback.onAdOpened()
+                interstitialAdCallback.onAdClosed()
             }
 
             override fun onAdShowedFullScreenContent() {
                 super.onAdShowedFullScreenContent()
-                interstitialAdCallback.onAdClosed()
+                interstitialAdCallback.onAdOpened()
+            }
+
+            override fun onAdFailedToShowFullScreenContent(p0: AdError) {
+                super.onAdFailedToShowFullScreenContent(p0)
+                interstitialAdCallback.onAdFailedToShow(p0)
             }
         }
     }
