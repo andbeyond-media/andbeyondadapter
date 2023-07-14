@@ -5,14 +5,16 @@ import android.content.Context
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.mediation.*
-import com.rtb.andbeyondmedia.adapter.config.LogLevel
-import com.rtb.andbeyondmedia.adapter.sdk.log
 
 
 class AndBeyondAdapter : Adapter() {
 
-    private lateinit var bannerLoader: AndBeyondBannerLoader
-    private lateinit var interstitialLoader: AndBeyondInterstitialLoader
+    private lateinit var bannerLoader: BannerLoader
+    private lateinit var interstitialLoader: InterstitialLoader
+    private lateinit var rewardedLoaded: RewardedLoader
+    private lateinit var rewardedInterstitialLoader: RewardedInterstitialLoader
+    private lateinit var appOpenAdLoader: AppOpenAdLoader
+    private lateinit var nativeAdLoaded: NativeAdLoader
     private val TAG: String = this::class.java.simpleName
 
     companion object {
@@ -24,7 +26,7 @@ class AndBeyondAdapter : Adapter() {
     }
 
     override fun initialize(context: Context, initializationCompleteCallback: InitializationCompleteCallback, list: List<MediationConfiguration>) {
-        LogLevel.INFO.log(TAG, "initialize: AndBeyondAdapter")
+        Logger.INFO.log(TAG, "initialize: $TAG")
         return
     }
 
@@ -43,18 +45,46 @@ class AndBeyondAdapter : Adapter() {
 
     override fun getSDKVersionInfo(): VersionInfo {
         val versionString = MobileAds.getVersion()
-        return VersionInfo(versionString.majorVersion, versionString.minorVersion, versionString.microVersion)
+        return VersionInfo(
+                versionString.majorVersion,
+                versionString.minorVersion,
+                versionString.microVersion
+        )
     }
 
     override fun loadBannerAd(mediationBannerAdConfiguration: MediationBannerAdConfiguration, mediationAdLoadCallback: MediationAdLoadCallback<MediationBannerAd, MediationBannerAdCallback>) {
-        LogLevel.INFO.log(TAG, "loadBannerAd")
-        bannerLoader = AndBeyondBannerLoader(mediationBannerAdConfiguration, mediationAdLoadCallback)
+        Logger.INFO.log(TAG, "loadBannerAd")
+        bannerLoader = BannerLoader(mediationBannerAdConfiguration, mediationAdLoadCallback)
         bannerLoader.loadAd()
     }
 
     override fun loadInterstitialAd(mediationInterstitialAdConfiguration: MediationInterstitialAdConfiguration, callback: MediationAdLoadCallback<MediationInterstitialAd, MediationInterstitialAdCallback>) {
-        LogLevel.INFO.log(TAG, "loadInterstitialAd:")
-        interstitialLoader = AndBeyondInterstitialLoader(mediationInterstitialAdConfiguration, callback)
+        Logger.INFO.log(TAG, "loadInterstitialAd:")
+        interstitialLoader = InterstitialLoader(mediationInterstitialAdConfiguration, callback)
         interstitialLoader.loadAd()
+    }
+
+    override fun loadAppOpenAd(mediationAppOpenAdConfiguration: MediationAppOpenAdConfiguration, callback: MediationAdLoadCallback<MediationAppOpenAd, MediationAppOpenAdCallback>) {
+        Logger.INFO.log(TAG, "loadAppOpenAd:")
+        appOpenAdLoader = AppOpenAdLoader(mediationAppOpenAdConfiguration, callback)
+        appOpenAdLoader.loadAd()
+    }
+
+    override fun loadRewardedAd(mediationRewardedAdConfiguration: MediationRewardedAdConfiguration, callback: MediationAdLoadCallback<MediationRewardedAd, MediationRewardedAdCallback>) {
+        Logger.INFO.log(TAG, "loadRewardedAd:")
+        rewardedLoaded = RewardedLoader(mediationRewardedAdConfiguration, callback)
+        rewardedLoaded.loadAd()
+    }
+
+    override fun loadRewardedInterstitialAd(mediationRewardedAdConfiguration: MediationRewardedAdConfiguration, callback: MediationAdLoadCallback<MediationRewardedAd, MediationRewardedAdCallback>) {
+        Logger.INFO.log(TAG, "loadRewardedInterstitialAd:")
+        rewardedInterstitialLoader = RewardedInterstitialLoader(mediationRewardedAdConfiguration, callback)
+        rewardedInterstitialLoader.loadAd()
+    }
+
+    override fun loadNativeAd(mediationNativeAdConfiguration: MediationNativeAdConfiguration, callback: MediationAdLoadCallback<UnifiedNativeAdMapper, MediationNativeAdCallback>) {
+        Logger.INFO.log(TAG, "loadNativeAd:")
+        nativeAdLoaded = NativeAdLoader(mediationNativeAdConfiguration, callback)
+        nativeAdLoaded.loadAd()
     }
 }
