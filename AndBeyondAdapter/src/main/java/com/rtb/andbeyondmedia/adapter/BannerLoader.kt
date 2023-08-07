@@ -60,19 +60,29 @@ internal class BannerLoader(private val mediationBannerAdConfiguration: Mediatio
 
     override fun onAdClicked() {
         Logger.INFO.log(TAG, "The banner ad was clicked.")
-        bannerAdCallback.onAdOpened()
         bannerAdCallback.onAdLeftApplication()
         bannerAdCallback.reportAdClicked()
     }
 
+    override fun onAdOpened() {
+        bannerAdCallback.onAdOpened()
+    }
+
     override fun onAdFailedToLoad(p0: LoadAdError) {
-        Logger.ERROR.log(TAG, "Failed to fetch the banner ad.")
-        mediationAdLoadCallback.onFailure(p0)
+        if (this::bannerAdCallback.isInitialized) {
+            Logger.ERROR.log(TAG, "Failed to fetch the banner ad.")
+            mediationAdLoadCallback.onFailure(p0)
+        }
     }
 
     override fun onAdLoaded() {
         Logger.INFO.log(TAG, "Received the banner ad.")
         bannerAdCallback = mediationAdLoadCallback.onSuccess(this)
-        bannerAdCallback.reportAdImpression()
+    }
+
+    override fun onAdImpression() {
+        if (this::bannerAdCallback.isInitialized) {
+            bannerAdCallback.reportAdImpression()
+        }
     }
 }
